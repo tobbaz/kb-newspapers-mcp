@@ -24,7 +24,22 @@ mcp = FastMCP(
     name="kb-tidningar",
     instructions=(
         "Search and retrieve digitized Swedish historical newspapers (17th century to circa 1908–1910) "
-        "from the National Library of Sweden (Kungliga biblioteket / KB) open collections."
+        "from the National Library of Sweden (Kungliga biblioteket / KB) open collections.\n\n"
+        "RECOMMENDED HISTORICAL RESEARCH WORKFLOW & BEST PRACTICES:\n"
+        "1. Orthography & Gothic/Fraktur OCR:\n"
+        "   - Historical Swedish newspapers (especially before the late 19th century) were printed in Fraktur/blackletter.\n"
+        "   - OCR engines frequently misrecognize letters (e.g. long 's' (ſ) as 'f' or 'S'; 'c' for 'e'; 'rn' for 'm').\n"
+        "   - Spellings varied historically (e.g. 'c' vs 'k', 'fv' vs 'v', 'ph' vs 'p', 'dt' vs 't').\n"
+        "   - If an initial search returns 0 or fewer hits than expected, ALWAYS try wildcards ('*') "
+        "or Boolean OR (e.g. 'Carlscrona OR Karlskrona', 'Gustaf OR Gustav', or stem wildcards like 'Söder*').\n"
+        "2. Two-Stage Search Workflow:\n"
+        "   - Stage 1 (Discovery): Use 'search_newspapers' to locate issues, dates, pages, and snippet matches.\n"
+        "   - Stage 2 (Deep Context): When snippets are truncated or lack surrounding sentences (e.g. to determine "
+        "full names, causes of death, destinations, or accompanying persons), invoke 'search_in_issue(package_id, query)' "
+        "on the relevant package_id to extract complete verbatim quotes and surrounding text.\n"
+        "3. Verification via Images:\n"
+        "   - Because historical OCR can be imperfect, always provide the direct image preview link from "
+        "'images.preview_width' (or 'get_newspaper_page_image') so the user can visually verify the original printed text."
     ),
 )
 
@@ -109,6 +124,17 @@ async def search_newspapers(
     """
     Search digitized Swedish historical newspapers (17th century to circa 1908–1910).
     Performs OCR full-text search and returns page-level hits with highlighted snippets and image links.
+
+    Historical Search & OCR Strategies:
+    - Fraktur / Gothic Print: 17th to late 19th-century newspapers were mostly printed in Fraktur/blackletter.
+      OCR engines frequently confuse similar glyphs (e.g. long 's' [ſ] misread as 'f', 'S', or 'l'; 'c' for 'e'; 'rn' for 'm').
+    - Historical Spelling & Wildcards: Use wildcard '*' or Boolean 'OR' to catch spelling variations
+      (e.g. 'Carlscrona OR Karlskrona', 'Gustaf OR Gustav', 'Linné OR Linnaeus', or stem wildcards like 'Söder*').
+    - Two-Stage Workflow:
+        1. Use this tool ('search_newspapers') for initial discovery of dates, issues, and page numbers.
+        2. If snippets are cut off or you need surrounding sentences (e.g. destinations, causes of death, full names),
+           call 'search_in_issue(package_id=..., query=...)' on the matched issue to retrieve complete verbatim quotes.
+        3. Always present the 'images.preview_width' link so users can visually verify the scanned page if OCR is unclear.
 
     Args:
         query: Search term or phrase in Swedish/English (e.g. 'ångfartyg', 'Carl von Linné', 'brand i Karlskrona').
@@ -242,6 +268,11 @@ async def search_in_issue(
     """
     Search inside a specific newspaper issue to locate all occurrences of a word or phrase
     with exact text lines and coordinates for image highlighting (IIIF Content Search).
+
+    Two-Stage Workflow Usage:
+    Use this tool as Stage 2 after 'search_newspapers' whenever a snippet is cut off or you need
+    the complete surrounding sentence (e.g. to uncover full names, occupations, causes of death,
+    travel origins/destinations, or accompanying persons).
 
     Args:
         package_id: The package ID of the newspaper issue (e.g. 'dark-37858').

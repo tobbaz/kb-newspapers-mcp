@@ -137,6 +137,28 @@ Converts bidirectionally between `data.kb.se` package IDs and public web URLs on
 
 ---
 
+## Research Strategies & Best Practices for Historical OCR
+
+Searching digitized newspapers from the 17th to early 20th century presents distinct challenges due to typography and historical spelling. Follow these general strategies for optimal results:
+
+### 1. Gothic / Fraktur Script & OCR Glitches
+Most Swedish newspapers before the late 19th century were printed in Fraktur (blackletter). OCR systems frequently misidentify character shapes:
+- **Long 's' (ſ):** Often transcribed as `f`, `S`, or `l` (e.g. *Hilpershausen* scanned as *HilperShauftn*).
+- **Vowel mutations & Ligatures:** Characters with umlauts or ligatures (`ä`, `ö`, `æ`, `oe`) may be parsed phonetically or stripped.
+- **Similar letterforms:** `c` vs `e`, `rn` vs `m`, `v` vs `u`.
+
+### 2. Wildcards and Alternative Orthography
+Swedish spelling was only standardized in the early 20th century. When searching names, places, or terms:
+- **Wildcard search (`*`):** Use stems (e.g. `Hilp*` or `Söder*`) to capture truncated OCR or spelling variants.
+- **Boolean OR:** Combine historical variations (e.g. `Carlscrona OR Karlskrona`, `Gustaf OR Gustav`, `Capitain OR Kapten`).
+
+### 3. The Recommended Two-Stage Workflow
+1. **Stage 1 (Discovery):** Run `search_newspapers` with your query and date limits. Note the `package_id`, issue date, and page number of promising hits.
+2. **Stage 2 (Deep Context):** If the snippets returned in Stage 1 are truncated or lack key context (e.g. destination of a traveller, cause of death, or family connections), call `search_in_issue(package_id="...", query="...")` on the relevant issue to extract full verbatim sentences and surrounding text quotes.
+3. **Stage 3 (Visual Verification):** Open the direct image link (`images.preview_width` or `images.max`) to examine the original scanned page if the OCR text is degraded.
+
+---
+
 ## Copyright & Fair Usage
 
 - **Historical Scope:** Digitized newspapers published before circa 1908–1910 are in the public domain and made available as open data via [data.kb.se](https://data.kb.se). Modern newspapers are protected by copyright and are not included in this open API.
