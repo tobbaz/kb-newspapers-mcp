@@ -4,7 +4,7 @@ Verifies API requests, data structures, and tool outputs directly.
 """
 
 import asyncio
-from kb_tidningar_mcp.server import (
+from kb_newspapers_mcp.server import (
     search_newspapers,
     get_newspaper_timeline,
     search_in_issue,

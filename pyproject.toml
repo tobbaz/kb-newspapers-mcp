@@ -1,5 +1,5 @@
 [project]
-name = "kb-tidningar-mcp"
+name = "kb-newspapers-mcp"
 version = "0.1.0"
 description = "MCP server for searching digitized historical Swedish newspapers via Kungliga biblioteket (KB) APIs"
 readme = "README.md"
@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-kb-tidningar-mcp = "kb_tidningar_mcp:main"
+kb-newspapers-mcp = "kb_newspapers_mcp:main"
+kb-tidningar-mcp = "kb_newspapers_mcp:main"
 
 [build-system]
 requires = ["uv_build>=0.12.15,<0.13.0"]

@@ -43,13 +43,13 @@ To install `uv` on any platform, refer to the [official uv installation guide](h
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/tobbaz/kb-tidningar-mcp.git
-   cd kb-tidningar-mcp
+   git clone https://github.com/tobbaz/kb-newspapers-mcp.git
+   cd kb-newspapers-mcp
    ```
 
 2. **Run the server locally:**
    ```bash
-   uv run kb-tidningar-mcp
+   uv run kb-newspapers-mcp
    ```
 
 3. **Execute integration tests:**
@@ -67,13 +67,13 @@ Add the server to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "kb-tidningar": {
+    "kb-newspapers": {
       "command": "uv",
       "args": [
         "run",
         "--directory",
-        "<path-to-repo>/kb-tidningar-mcp",
-        "kb-tidningar-mcp"
+        "<path-to-repo>/kb-newspapers-mcp",
+        "kb-newspapers-mcp"
       ]
     }
   }
@@ -84,13 +84,13 @@ Add the server to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "kb-tidningar": {
+    "kb-newspapers": {
       "command": "uv",
       "args": [
         "run",
         "--directory",
-        "<path-to-repo>/kb-tidningar-mcp",
-        "kb-tidningar-mcp"
+        "<path-to-repo>/kb-newspapers-mcp",
+        "kb-newspapers-mcp"
       ]
     }
   }

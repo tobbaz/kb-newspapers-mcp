@@ -17,11 +17,11 @@ except ImportError:
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("kb-tidningar-mcp")
+logger = logging.getLogger("kb-newspapers-mcp")
 
 # Initialize MCP instance
 mcp = FastMCP(
-    name="kb-tidningar",
+    name="kb-newspapers",
     instructions=(
         "Search and retrieve digitized Swedish historical newspapers (17th century to circa 1908–1910) "
         "from the National Library of Sweden (Kungliga biblioteket / KB) open collections.\n\n"
@@ -45,7 +45,7 @@ mcp = FastMCP(
 
 BASE_SEARCH_URL = "https://data.kb.se/search/"
 BASE_DATA_URL = "https://data.kb.se/"
-USER_AGENT = "KB-Tidningar-MCP/1.0 (+https://github.com/tobbaz/kb-tidningar-mcp; Historical Newspaper Research)"
+USER_AGENT = "KB-Newspapers-MCP/1.0 (+https://github.com/tobbaz/kb-newspapers-mcp; Historical Newspaper Research)"
 
 DEFAULT_HEADERS = {
     "Accept": "application/json",
