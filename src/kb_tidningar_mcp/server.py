@@ -1,31 +1,36 @@
 """
-KB Gamla Tidningar MCP Server
-Ger AI-modeller tillgång till Kungliga bibliotekets (KB) digitaliserade
-historiska svenska dagstidningar (1600-talet fram till ca 1908-1910).
+KB Historical Newspapers (Gamla Tidningar) MCP Server.
+
+Provides AI assistants with access to the National Library of Sweden's (Kungliga biblioteket / KB)
+digitized historical newspapers (from the 17th century up to circa 1908–1910).
 """
 
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional
 import httpx
+
 try:
     from mcp.server.mcpserver import MCPServer as FastMCP
 except ImportError:
     from mcp.server.fastmcp import FastMCP  # type: ignore
 
-# Konfigurera loggning
+# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("kb-tidningar-mcp")
 
-# Skapa MCP-instans
+# Initialize MCP instance
 mcp = FastMCP(
     name="kb-tidningar",
-    instructions="Sök i Kungliga bibliotekets (KB) historiska digitaliserade dagstidningar (1600-tal till ca 1908/1910)",
+    instructions=(
+        "Search and retrieve digitized Swedish historical newspapers (17th century to circa 1908–1910) "
+        "from the National Library of Sweden (Kungliga biblioteket / KB) open collections."
+    ),
 )
 
 BASE_SEARCH_URL = "https://data.kb.se/search/"
 BASE_DATA_URL = "https://data.kb.se/"
-USER_AGENT = "KB-Tidningar-MCP/1.0 (+https://github.com/tobbaz/kb-tidningar-mcp; Slaktforskning och Historisk forskning)"
+USER_AGENT = "KB-Tidningar-MCP/1.0 (+https://github.com/tobbaz/kb-tidningar-mcp; Historical Newspaper Research)"
 
 DEFAULT_HEADERS = {
     "Accept": "application/json",
@@ -39,8 +44,8 @@ async def _make_request(
     max_retries: int = 3,
     timeout: float = 20.0,
 ) -> Dict[str, Any]:
-    """Utför asynkront HTTP-anrop med fair-usage exponential backoff för rate limits."""
-    # Rensa None-värden från params
+    """Execute an asynchronous HTTP GET request with fair-usage exponential backoff for rate limits."""
+    # Filter out None values from query parameters
     cleaned_params = {k: v for k, v in (params or {}).items() if v is not None}
 
     async with httpx.AsyncClient(timeout=timeout, headers=DEFAULT_HEADERS, follow_redirects=True) as client:
@@ -49,12 +54,12 @@ async def _make_request(
             try:
                 resp = await client.get(url, params=cleaned_params)
 
-                # Hantera rate limit / throttling (429 Too Many Requests eller 503)
+                # Handle rate limiting / throttling (HTTP 429 Too Many Requests or 503)
                 if resp.status_code in (429, 503):
                     retry_after = resp.headers.get("Retry-After")
                     sleep_time = float(retry_after) if retry_after else backoff
                     logger.warning(
-                        "Fick HTTP %s från KB. Väntar %.1f sekunder (försök %d/%d)...",
+                        "Received HTTP %s from KB. Backing off for %.1f seconds (attempt %d/%d)...",
                         resp.status_code,
                         sleep_time,
                         attempt + 1,
@@ -68,20 +73,20 @@ async def _make_request(
                 return resp.json()
 
             except httpx.HTTPStatusError as e:
-                logger.error("HTTP-fel vid anrop till %s: %s", url, e)
+                logger.error("HTTP error during request to %s: %s", url, e)
                 raise
             except httpx.RequestError as e:
                 if attempt == max_retries - 1:
-                    logger.error("Nätverksfel efter %d försök: %s", max_retries, e)
+                    logger.error("Network error after %d attempts: %s", max_retries, e)
                     raise
                 await asyncio.sleep(backoff)
                 backoff *= 2.0
 
-        raise RuntimeError(f"Kunde inte slutföra anrop till {url} efter {max_retries} försök.")
+        raise RuntimeError(f"Could not complete request to {url} after {max_retries} attempts.")
 
 
 def _clean_date(date_str: Optional[str], is_end_date: bool = False) -> Optional[str]:
-    """Konverterar årtal YYYY till fullständigt datum YYYY-MM-DD om det behövs."""
+    """Convert a year string 'YYYY' into full ISO date format 'YYYY-MM-DD' if needed."""
     if not date_str:
         return None
     s = date_str.strip()
@@ -102,18 +107,18 @@ async def search_newspapers(
     max_snippets: int = 5,
 ) -> Dict[str, Any]:
     """
-    Sök i Kungliga bibliotekets digitaliserade historiska tidningar (1600-tal till ca 1908).
-    Söker i OCR-fulltexten och returnerar träffar på sidnivå med textutdrag/snippets.
+    Search digitized Swedish historical newspapers (17th century to circa 1908–1910).
+    Performs OCR full-text search and returns page-level hits with highlighted snippets and image links.
 
     Args:
-        query: Sökord eller fras (t.ex. 'ångfartyg', 'Carl von Linné', 'brand i Karlskrona').
-        from_date: Startdatum i formatet 'YYYY-MM-DD' eller bara årtal 'YYYY' (t.ex. '1850').
-        to_date: Slutdatum i formatet 'YYYY-MM-DD' eller bara årtal 'YYYY' (t.ex. '1899').
-        newspaper: Begränsa till specifik tidning (t.ex. 'Aftonbladet', 'Dagens Nyheter', 'Post- och inrikes tidningar', 'Göteborgsposten').
-        sort_by: Sorteringsordning: 'relevance' (mest relevant), 'date_asc' (äldst först) eller 'date_desc' (nyast först).
-        limit: Antal träffar per anrop (1-100, standard 20).
-        offset: Startindex för paginering (standard 0).
-        max_snippets: Max antal textutdrag som visas per tidningssida (standard 5).
+        query: Search term or phrase in Swedish/English (e.g. 'ångfartyg', 'Carl von Linné', 'brand i Karlskrona').
+        from_date: Start date in 'YYYY-MM-DD' format or simply year 'YYYY' (e.g. '1850').
+        to_date: End date in 'YYYY-MM-DD' format or simply year 'YYYY' (e.g. '1899').
+        newspaper: Filter by specific newspaper title (e.g. 'Aftonbladet', 'Dagens Nyheter', 'Post- och inrikes tidningar', 'Göteborgsposten').
+        sort_by: Sort order: 'relevance' (most relevant), 'date_asc' (oldest first), or 'date_desc' (newest first).
+        limit: Number of results to return per page (1-100, default 20).
+        offset: Zero-based starting index for pagination (default 0).
+        max_snippets: Maximum number of text snippets to include per newspaper page (default 5).
     """
     limit = max(1, min(100, limit))
     offset = max(0, offset)
@@ -182,7 +187,7 @@ async def search_newspapers(
         "limit": limit,
         "next_offset": next_offset,
         "has_more": next_offset is not None,
-        "message": f"Visar träff {offset + 1}–{offset + len(hits)} av totalt {total}." if total > 0 else "Inga träffar hittades.",
+        "message": f"Showing hits {offset + 1}–{offset + len(hits)} of {total} total." if total > 0 else "No hits found.",
         "hits": hits,
     }
 
@@ -193,12 +198,12 @@ async def get_newspaper_timeline(
     field: str = "datePublished",
 ) -> Dict[str, Any]:
     """
-    Hämta fördelning över tid eller tidningar för ett sökord.
-    Perfekt för att se när en händelse omskrevs mest eller vilka tidningar som skrev om den.
+    Get the temporal or newspaper distribution statistics for a search term.
+    Useful to discover when an event was reported most frequently or which newspapers covered it.
 
     Args:
-        query: Sökord (t.ex. 'kolera', 'ångbåt', 'Sveriges riksdag').
-        field: Vad statistiken ska grupperas på: 'datePublished' (årtal) eller 'isPartOf' (tidningstitlar).
+        query: Search term (e.g. 'kolera', 'ångbåt', 'Sveriges riksdag').
+        field: Aggregation target: 'datePublished' (distribution by year) or 'isPartOf' (distribution by newspaper title).
     """
     params = {
         "q": query,
@@ -235,12 +240,12 @@ async def search_in_issue(
     query: str,
 ) -> Dict[str, Any]:
     """
-    Sök inom ett specifikt tidningsnummer för att hitta alla förekomster av ett ord
-    med exakta textrader och koordinater för bildmarkering (IIIF Content Search).
+    Search inside a specific newspaper issue to locate all occurrences of a word or phrase
+    with exact text lines and coordinates for image highlighting (IIIF Content Search).
 
     Args:
-        package_id: Tidningsnumrets paket-ID (t.ex. 'dark-37858').
-        query: Sökord att hitta i tidningsnumret.
+        package_id: The package ID of the newspaper issue (e.g. 'dark-37858').
+        query: Search word or phrase to locate within the issue.
     """
     url = f"{BASE_SEARCH_URL}content/{package_id}"
     params = {"q": query}
@@ -280,19 +285,19 @@ async def get_newspaper_page_image(
     width: int = 1200,
 ) -> Dict[str, Any]:
     """
-    Generera direktlänkar och IIIF-bild-URL:er för en specifik tidningssida.
+    Generate direct image URLs and IIIF links for a specific newspaper page.
 
     Args:
-        image_service_id: IIIF-tjänst-ID som returnerades från search_newspapers (t.ex. 'https://data.kb.se/iiif/3/dark-30466%2Fbib4345612_18620716_0_s_0003.jp2').
-        package_id: Tidningsnumrets paket-ID (t.ex. 'dark-30466' eller 'dark-37858').
-        page_number: Sidnummer (t.ex. 1, 3, 4).
-        part_number: Delnummer (standard 1).
-        width: Önskad bredd i pixlar på den genererade bilden (t.ex. 1200 för läsbar storlek, eller 300 för tumnagel).
+        image_service_id: IIIF image service URL returned from search_newspapers (e.g. 'https://data.kb.se/iiif/3/dark-30466%2Fbib4345612_18620716_0_s_0003.jp2').
+        package_id: Package ID of the newspaper issue (e.g. 'dark-30466' or 'dark-37858').
+        page_number: Page number within the issue (e.g. 1, 3, 4).
+        part_number: Part/section number (default 1).
+        width: Desired pixel width for the preview image (e.g. 1200 for readable size, 300 for thumbnail).
     """
     image_urls: Dict[str, str] = {}
     pkg_id = package_id
 
-    # Alternativ A: Om vi fick image_service_id direkt
+    # Option A: If image_service_id was provided directly
     if image_service_id:
         image_urls = {
             "thumbnail": f"{image_service_id}/full/300,/0/default.jpg",
@@ -300,7 +305,6 @@ async def get_newspaper_page_image(
             "max_resolution": f"{image_service_id}/full/max/0/default.jpg",
             "info_json": f"{image_service_id}/info.json",
         }
-        # Försök härleda package_id ur image_service_id om den saknas
         if not pkg_id and "dark-" in image_service_id:
             try:
                 parts = image_service_id.split("dark-")
@@ -308,13 +312,12 @@ async def get_newspaper_page_image(
             except Exception:
                 pass
 
-    # Alternativ B: Slå upp via package_id .jsonld om image_service_id inte angavs
+    # Option B: Look up via package_id .jsonld metadata
     elif pkg_id:
         pkg_url = f"{BASE_DATA_URL}{pkg_id}.jsonld"
         try:
             pkg_data = await _make_request(pkg_url)
             files = pkg_data.get("includes", [])
-            # Hitta filer som matchar sidnumret (t.ex. 0003.jp2 eller part-fil)
             padded_page = f"_{page_number:04d}."
             matched_file = None
             for f in files:
@@ -323,7 +326,6 @@ async def get_newspaper_page_image(
                     if padded_page in fname or f"_{page_number}." in fname:
                         matched_file = fname
                         break
-            # Fallback: om ingen specifik träffades, ta index (page_number - 1)
             if not matched_file:
                 jp2_files = [f.get("fileName") for f in files if f.get("fileName", "").endswith(".jp2")]
                 if 0 <= page_number - 1 < len(jp2_files):
@@ -338,9 +340,9 @@ async def get_newspaper_page_image(
                     "info_json": f"{img_srv}/info.json",
                 }
         except Exception as e:
-            logger.warning("Kunde inte hämta paketdata för %s: %s", pkg_id, e)
+            logger.warning("Could not fetch package metadata for %s: %s", pkg_id, e)
 
-    # Slå upp URL:er på tidningar.kb.se och digitalt.kb.se
+    # Look up corresponding URLs on tidningar.kb.se and digitalt.kb.se
     tidningar_url = None
     digitalt_url = None
     if pkg_id:
@@ -367,11 +369,11 @@ async def lookup_newspaper_id(
     id_or_url: str,
 ) -> Dict[str, Any]:
     """
-    Konvertera mellan Kungliga bibliotekets interna paket-ID (t.ex. 'dark-37858')
-    och webblänk på tidningar.kb.se (t.ex. 'https://tidningar.kb.se/dxqth86q2n2zwg9').
+    Convert bidirectionally between the National Library's internal package ID (e.g. 'dark-37858')
+    and the public web URL on tidningar.kb.se (e.g. 'https://tidningar.kb.se/dxqth86q2n2zwg9').
 
     Args:
-        id_or_url: Ett data.kb.se-ID, eller en länk/ID från tidningar.kb.se.
+        id_or_url: A data.kb.se package ID, or a URL/ID from tidningar.kb.se.
     """
     clean_id = id_or_url.strip().rstrip("/").split("/")[-1]
     url = f"{BASE_DATA_URL}lookup/"
@@ -384,8 +386,8 @@ async def lookup_newspaper_id(
 
 
 def main():
-    """Starta MCP-servern via stdio."""
-    logger.info("Startar KB Tidningar MCP-server...")
+    """Start the MCP server using stdio transport."""
+    logger.info("Starting KB Historical Newspapers (Gamla Tidningar) MCP Server...")
     mcp.run(transport="stdio")
 
 

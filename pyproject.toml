@@ -1,7 +1,7 @@
 [project]
 name = "kb-tidningar-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for searching digitized historical Swedish newspapers via Kungliga biblioteket (KB) APIs"
 readme = "README.md"
 authors = [
     { name = "Tobbe", email = "tobbe75@gmail.com" }

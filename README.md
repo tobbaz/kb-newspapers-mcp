@@ -1,73 +1,69 @@
-# KB Gamla Tidningar MCP Server
+# KB Historical Newspapers (Gamla Tidningar) MCP Server
 
-En [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)-server som ger AI-assistenter (t.ex. Antigravity, Claude Desktop, Cursor) direkt tillgång till Kungliga bibliotekets (KB) digitaliserade historiska dagstidningar från 1600-talet fram till ca 1908–1910.
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that provides AI assistants (such as Claude Desktop, Antigravity, Cursor, and other MCP-compliant clients) with direct programmatic access to the National Library of Sweden's (Kungliga biblioteket / KB) digitized historical newspapers from the 17th century up to circa 1908–1910.
 
-Byggd i Python med **FastMCP** och **uv**.
-
----
-
-## Egenskaper
-
-- 🔍 **Fulltextsökning (OCR):** Sök i över 2,2 miljoner historiska tidningssidor med automatiska textutdrag (*snippets*) där söktermerna markeras.
-- 📅 **Filtrering & Sortering:** Sök inom specifika tidsperioder (t.ex. `1850` till `1880` eller exakta datum), filtrera på specifika tidningar (t.ex. *Aftonbladet*, *Dagens Nyheter*, *Post- och Inrikes Tidningar*), och sortera efter relevans eller datum.
-- 📈 **Tidslinje & Statistik:** Se hur ofta ett ord, namn eller företeelse förekommer över decennier och mellan olika tidningar.
-- 🖼️ **Högupplösta bilder (IIIF):** Direktgenerering av länkar till tidningssidor i valfri upplösning via KB:s IIIF Image API (både tumnaglar och helsidesbilder).
-- 🔗 **Webblänkar:** Automatisk koppling till [tidningar.kb.se](https://tidningar.kb.se) och [digitalt.kb.se](https://digitalt.kb.se).
-- 🕊️ **Fair Use:** Inbyggd exponential backoff vid rate limits (`HTTP 429`/`503`) och identifierande `User-Agent`.
+Built in Python using **FastMCP** and **uv**.
 
 ---
 
-## Förutsättningar
+## Key Features
 
-- [uv](https://docs.astral.sh/uv/) installerat:
+- 🔍 **Full-Text Search (OCR):** Search across more than 2.2 million historical newspaper pages with highlighted text snippets (`<em>...</em>`) indicating matches.
+- 📅 **Filtering & Sorting:** Filter by year or date range (e.g. `1850` to `1880` or `1862-07-01`), restrict searches to specific newspaper titles (e.g. *Aftonbladet*, *Dagens Nyheter*, *Post- och Inrikes Tidningar*, *Göteborgsposten*), and sort by relevance or publication date.
+- 📈 **Timeline & Distribution:** Aggregate occurrences of a word, name, or event over time (by year) or across different publications.
+- 🖼️ **High-Resolution Images (IIIF):** Construct direct image URLs for page previews and full-resolution scans using KB's IIIF Image API.
+- 🔗 **Web Link Resolution:** Bidirectional lookup between internal dataset package IDs and public article pages on [tidningar.kb.se](https://tidningar.kb.se) and [digitalt.kb.se](https://digitalt.kb.se).
+- 🕊️ **Fair-Usage & Resilience:** Automated exponential backoff for HTTP 429/503 responses, friendly User-Agent headers, and sane pagination defaults.
+
+---
+
+## Prerequisites
+
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) (recommended package manager)
+
+To install `uv` on any platform, refer to the [official uv installation guide](https://docs.astral.sh/uv/getting-started/installation/), or run:
+
+- **Linux / macOS:**
   ```bash
-  brew install uv
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  ```
+- **Windows (PowerShell):**
+  ```powershell
+  powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+  ```
+- **Via Pip:**
+  ```bash
+  pip install uv
   ```
 
 ---
 
-## Installation & Snabbstart
+## Installation & Quickstart
 
-1. Klona repot:
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/tobbaz/kb-tidningar-mcp.git
    cd kb-tidningar-mcp
    ```
 
-2. Testa att köra servern lokalt:
+2. **Run the server locally:**
    ```bash
    uv run kb-tidningar-mcp
    ```
 
-3. Kör testerna för att verifiera anslutningen till KB:s API:
+3. **Execute integration tests:**
    ```bash
    uv run python test_server.py
    ```
 
 ---
 
-## Konfiguration
+## Client Configuration
 
-### I Antigravity / Gemini CLI (`~/.gemini/config/mcp_config.json`)
-Lägg till under `mcpServers`:
+### Claude Desktop
+Add the server to your `claude_desktop_config.json`:
 
-```json
-{
-  "mcpServers": {
-    "kb-tidningar": {
-      "command": "/usr/local/bin/uv",
-      "args": [
-        "run",
-        "--directory",
-        "/Users/tobbe/Genealogy/AI/mcp/kb-tidningar-mcp",
-        "kb-tidningar-mcp"
-      ]
-    }
-  }
-}
-```
-
-### I Claude Desktop (`claude_desktop_config.json`)
 ```json
 {
   "mcpServers": {
@@ -76,7 +72,7 @@ Lägg till under `mcpServers`:
       "args": [
         "run",
         "--directory",
-        "/absolut/sokvag/till/kb-tidningar-mcp",
+        "<path-to-repo>/kb-tidningar-mcp",
         "kb-tidningar-mcp"
       ]
     }
@@ -84,49 +80,70 @@ Lägg till under `mcpServers`:
 }
 ```
 
+### Antigravity / Gemini CLI (`mcp_config.json`)
+```json
+{
+  "mcpServers": {
+    "kb-tidningar": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "<path-to-repo>/kb-tidningar-mcp",
+        "kb-tidningar-mcp"
+      ]
+    }
+  }
+}
+```
+
+*(Replace `<path-to-repo>` with the absolute path to where you cloned this repository.)*
+
 ---
 
-## Tillgängliga Verktyg (Tools)
+## Available Tools
 
 ### 1. `search_newspapers`
-Huvudverktyg för att söka i tidningsartiklar och sidor.
-- `query` *(sträng, obligatorisk)*: Sökord eller fras (t.ex. `"ångfartyg"`, `"Carl von Linné"`, `"August Strindberg"`).
-- `from_date` *(valfritt)*: Startdatum (t.ex. `'1850'` eller `'1850-01-01'`).
-- `to_date` *(valfritt)*: Slutdatum (t.ex. `'1899'` eller `'1899-12-31'`).
-- `newspaper` *(valfritt)*: Begränsa till specifik tidning (t.ex. `'Aftonbladet'`, `'Post- och inrikes tidningar'`).
-- `sort_by` *(valfritt)*: `'relevance'` (standard), `'date_asc'` eller `'date_desc'`.
-- `limit` *(int, default 20, max 100)*: Antal träffar per sida.
-- `offset` *(int, default 0)*: Pagineringsoffset.
-- `max_snippets` *(int, default 5)*: Antal textutdrag per tidningssida.
+Searches OCR full text across digitized historical Swedish newspapers.
+- `query` *(string, required)*: Keyword or phrase (e.g. `"ångfartyg"`, `"Carl von Linné"`, `"August Strindberg"`).
+- `from_date` *(optional)*: Start date (`'YYYY-MM-DD'` or year `'YYYY'`).
+- `to_date` *(optional)*: End date (`'YYYY-MM-DD'` or year `'YYYY'`).
+- `newspaper` *(optional)*: Filter by newspaper title (e.g. `'Aftonbladet'`, `'Dagens Nyheter'`).
+- `sort_by` *(optional)*: `'relevance'` (default), `'date_asc'` (oldest first), or `'date_desc'` (newest first).
+- `limit` *(int, default 20, max 100)*: Number of hits to return.
+- `offset` *(int, default 0)*: Pagination starting index.
+- `max_snippets` *(int, default 5)*: Maximum text snippets to return per page.
 
 ### 2. `get_newspaper_timeline`
-Hämtar historisk frekvens eller fördelning mellan tidningar för ett sökord.
-- `query` *(sträng, obligatorisk)*: Sökord (t.ex. `'kolera'`).
-- `field` *(valfritt)*: `'datePublished'` (fördelning över årtal) eller `'isPartOf'` (fördelning över tidningar).
+Retrieves aggregation statistics for a search term over time or across publications.
+- `query` *(string, required)*: Search term (e.g. `'kolera'`).
+- `field` *(optional)*: Aggregation target: `'datePublished'` (by year) or `'isPartOf'` (by publication title).
 
 ### 3. `search_in_issue`
-Söker inom ett enskilt tidningsnummer med IIIF Content Search och returnerar alla träffar med exakta citat och koordinater.
-- `package_id` *(sträng, obligatorisk)*: Tidningsnumrets paket-ID (t.ex. `'dark-37858'`).
-- `query` *(sträng, obligatorisk)*: Sökord.
+Searches within an individual newspaper issue using IIIF Content Search to return exact quotes and bounding-box coordinates.
+- `package_id` *(string, required)*: Issue package identifier (e.g. `'dark-37858'`).
+- `query` *(string, required)*: Word or phrase to locate.
 
 ### 4. `get_newspaper_page_image`
-Genererar IIIF-bildlänkar och webblänkar för en tidningssida.
-- `image_service_id` *(valfritt)*: IIIF Service URL från sökträff.
-- `package_id` *(valfritt)*: Paket-ID (t.ex. `'dark-30466'`).
-- `page_number` *(int, default 1)*: Sidnummer.
-- `width` *(int, default 1200)*: Bildbredd i pixlar.
+Generates IIIF image URLs and web links for a given newspaper page.
+- `image_service_id` *(optional)*: IIIF service URL returned from `search_newspapers`.
+- `package_id` *(optional)*: Issue package identifier (e.g. `'dark-30466'`).
+- `page_number` *(int, default 1)*: Page number within the issue.
+- `width` *(int, default 1200)*: Desired pixel width for preview images.
 
 ### 5. `lookup_newspaper_id`
-Konverterar dubbelriktat mellan `data.kb.se`-paket-ID och webbadress på `tidningar.kb.se`.
-- `id_or_url` *(sträng, obligatorisk)*: T.ex. `'dark-37858'` eller `'https://tidningar.kb.se/dxqth86q2n2zwg9'`.
+Converts bidirectionally between `data.kb.se` package IDs and public web URLs on `tidningar.kb.se`.
+- `id_or_url` *(string, required)*: E.g. `'dark-37858'` or `'https://tidningar.kb.se/dxqth86q2n2zwg9'`.
 
 ---
 
-## Om materialet och upphovsrätt
+## Copyright & Fair Usage
 
-Kungliga bibliotekets digitaliserade tidningar före ca 1908–1910 är fria från upphovsrätt (Public Domain) och tillhandahålls som öppna data via [data.kb.se](https://data.kb.se). Moderna tidningar omfattas av upphovsrätt och ingår därför inte i detta öppna API.
+- **Historical Scope:** Digitized newspapers published before circa 1908–1910 are in the public domain and made available as open data via [data.kb.se](https://data.kb.se). Modern newspapers are protected by copyright and are not included in this open API.
+- **Fair Use:** The National Library implements rate throttling to ensure service availability. This server includes an identifying `User-Agent` and automated exponential backoff when encountering rate limits.
 
-## Licens
+---
 
-MIT License.
-Metadata och digitaliserat material tillhandahålls av [Kungliga biblioteket (KB)](https://www.kb.se).
+## License
+
+MIT License. Metadata and digitized content are provided by the [National Library of Sweden (Kungliga biblioteket)](https://www.kb.se).
