@@ -1,5 +1,5 @@
 """
-KB Historical Newspapers (Gamla Tidningar) MCP Server.
+KB Historical Newspapers MCP Server.
 
 Provides AI assistants with access to the National Library of Sweden's (Kungliga biblioteket / KB)
 digitized historical newspapers (from the 17th century up to circa 1908–1910).
@@ -419,7 +419,7 @@ async def lookup_newspaper_id(
 
 def main():
     """Start the MCP server using stdio transport."""
-    logger.info("Starting KB Historical Newspapers (Gamla Tidningar) MCP Server...")
+    logger.info("Starting KB Historical Newspapers MCP Server...")
     mcp.run(transport="stdio")
 
 

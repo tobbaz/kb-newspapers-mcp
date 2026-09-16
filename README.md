@@ -1,4 +1,4 @@
-# KB Historical Newspapers (Gamla Tidningar) MCP Server
+# KB Historical Newspapers MCP Server
 
 A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that provides AI assistants (such as Claude Desktop, Antigravity, Cursor, and other MCP-compliant clients) with direct programmatic access to the National Library of Sweden's (Kungliga biblioteket / KB) digitized historical newspapers from the 17th century up to circa 1908–1910.
 
