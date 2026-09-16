@@ -332,7 +332,8 @@ async def get_newspaper_page_image(
                     matched_file = jp2_files[page_number - 1]
 
             if matched_file:
-                img_srv = f"https://data.kb.se/iiif/3/{pkg_id}%2FJP2000%2F{matched_file}"
+                clean_file = matched_file.lstrip("/")
+                img_srv = f"https://data.kb.se/iiif/3/{pkg_id}%2F{clean_file}"
                 image_urls = {
                     "thumbnail": f"{img_srv}/full/300,/0/default.jpg",
                     "preview_width": f"{img_srv}/full/{width},/0/default.jpg",
