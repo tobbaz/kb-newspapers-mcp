@@ -2,7 +2,7 @@
 KB Historical Newspapers MCP Server.
 
 Provides AI assistants with access to the National Library of Sweden's (Kungliga biblioteket / KB)
-digitized historical newspapers (from the 17th century up to circa 1908–1910).
+digitized historical newspapers (from the 17th century up to 1876).
 """
 
 import asyncio
@@ -23,8 +23,13 @@ logger = logging.getLogger("kb-newspapers-mcp")
 mcp = FastMCP(
     name="kb-newspapers",
     instructions=(
-        "Search and retrieve digitized Swedish historical newspapers (17th century to circa 1908–1910) "
+        "Search and retrieve digitized Swedish historical newspapers (17th century up to 1876) "
         "from the National Library of Sweden (Kungliga biblioteket / KB) open collections.\n\n"
+        "CRITICAL DATASET BOUNDARY:\n"
+        "- KB's open API (data.kb.se) covers digitized newspapers up to and including 1876 (1645–1876).\n"
+        "- Searches for dates after 1876 will return 0 hits in this API.\n"
+        "- For material from 1877 onwards (e.g. 1877–1906, which is free to browse online), "
+        "direct users to search via the web portal at https://tidningar.kb.se.\n\n"
         "RECOMMENDED HISTORICAL RESEARCH WORKFLOW & BEST PRACTICES:\n"
         "1. Orthography & Gothic/Fraktur OCR:\n"
         "   - Historical Swedish newspapers (especially before the late 19th century) were printed in Fraktur/blackletter.\n"
@@ -110,6 +115,19 @@ def _clean_date(date_str: Optional[str], is_end_date: bool = False) -> Optional[
     return s
 
 
+def _extract_year(date_str: Optional[str]) -> Optional[int]:
+    """Extract a 4-digit year from a date string (e.g. '1885', '1885-04-12')."""
+    if not date_str:
+        return None
+    s = date_str.strip()
+    if len(s) >= 4 and s[:4].isdigit():
+        try:
+            return int(s[:4])
+        except ValueError:
+            return None
+    return None
+
+
 @mcp.tool()
 async def search_newspapers(
     query: str,
@@ -122,8 +140,13 @@ async def search_newspapers(
     max_snippets: int = 5,
 ) -> Dict[str, Any]:
     """
-    Search digitized Swedish historical newspapers (17th century to circa 1908–1910).
+    Search digitized Swedish historical newspapers (17th century up to 1876).
     Performs OCR full-text search and returns page-level hits with highlighted snippets and image links.
+
+    Dataset Coverage Note:
+    - KB's open API (data.kb.se) covers newspapers up to and including 1876 (1645–1876).
+    - Queries specifying dates after 1876 will return 0 hits.
+    - Free public-domain newspapers for 1877–1906 are accessible via the web at https://tidningar.kb.se.
 
     Historical Search & OCR Strategies:
     - Fraktur / Gothic Print: 17th to late 19th-century newspapers were mostly printed in Fraktur/blackletter.
@@ -139,7 +162,7 @@ async def search_newspapers(
     Args:
         query: Search term or phrase in Swedish/English (e.g. 'ångfartyg', 'Carl von Linné', 'brand i Karlskrona').
         from_date: Start date in 'YYYY-MM-DD' format or simply year 'YYYY' (e.g. '1850').
-        to_date: End date in 'YYYY-MM-DD' format or simply year 'YYYY' (e.g. '1899').
+        to_date: End date in 'YYYY-MM-DD' format or simply year 'YYYY' (e.g. '1875'). Note: Material after 1876 is not in this API.
         newspaper: Filter by specific newspaper title (e.g. 'Aftonbladet', 'Dagens Nyheter', 'Post- och inrikes tidningar', 'Göteborgsposten').
         sort_by: Sort order: 'relevance' (most relevant), 'date_asc' (oldest first), or 'date_desc' (newest first).
         limit: Number of results to return per page (1-100, default 20).
@@ -148,6 +171,23 @@ async def search_newspapers(
     """
     limit = max(1, min(100, limit))
     offset = max(0, offset)
+
+    from_year = _extract_year(from_date)
+    to_year = _extract_year(to_date)
+
+    warning = None
+    if from_year and from_year > 1876:
+        warning = (
+            "KB's open API (data.kb.se) currently only contains digitized newspapers up to and including 1876. "
+            "Searches with a start date after 1876 return 0 hits in this API. "
+            "Digitized newspapers for 1877–1906 are freely accessible via the web interface at https://tidningar.kb.se."
+        )
+    elif to_year and to_year > 1876:
+        warning = (
+            "KB's open API (data.kb.se) only contains newspapers up to 1876. "
+            "Your search will only cover material up to 1876. "
+            "Material for 1877 and later must be searched at https://tidningar.kb.se."
+        )
 
     sort_map = {
         "relevance": "relevance",
@@ -205,7 +245,20 @@ async def search_newspapers(
 
     next_offset = offset + limit if (offset + limit) < total else None
 
-    return {
+    if total > 0:
+        message = f"Showing hits {offset + 1}–{offset + len(hits)} of {total} total."
+        if warning:
+            message += f" Note: {warning}"
+    else:
+        if from_year and from_year > 1876:
+            message = (
+                "No hits found. Note: KB's open API (data.kb.se) only contains newspapers up to 1876. "
+                "Material after 1876 must be searched on https://tidningar.kb.se."
+            )
+        else:
+            message = "No hits found."
+
+    result: Dict[str, Any] = {
         "query": query,
         "total_hits": total,
         "returned_hits": len(hits),
@@ -213,9 +266,20 @@ async def search_newspapers(
         "limit": limit,
         "next_offset": next_offset,
         "has_more": next_offset is not None,
-        "message": f"Showing hits {offset + 1}–{offset + len(hits)} of {total} total." if total > 0 else "No hits found.",
+        "message": message,
         "hits": hits,
     }
+
+    if warning:
+        result["warning"] = warning
+    elif total == 0:
+        result["note"] = (
+            "If the event or person you are searching for occurred after 1876, "
+            "note that this open API only covers newspapers up to 1876. "
+            "Please search the web portal at https://tidningar.kb.se for material from 1877 onwards."
+        )
+
+    return result
 
 
 @mcp.tool()
@@ -226,6 +290,9 @@ async def get_newspaper_timeline(
     """
     Get the temporal or newspaper distribution statistics for a search term.
     Useful to discover when an event was reported most frequently or which newspapers covered it.
+
+    Dataset Coverage Note:
+    - KB's open API (data.kb.se) covers newspapers up to and including 1876.
 
     Args:
         query: Search term (e.g. 'kolera', 'ångbåt', 'Sveriges riksdag').
@@ -252,12 +319,18 @@ async def get_newspaper_timeline(
                     "count": v.get("count"),
                 })
 
-    return {
+    res: Dict[str, Any] = {
         "query": query,
         "total_hits": total,
         "grouped_by": field,
         "distribution": items,
     }
+    if field == "datePublished":
+        res["note"] = (
+            "KB's open API (data.kb.se) covers digitized newspapers up to 1876. "
+            "For later years, search via https://tidningar.kb.se."
+        )
+    return res
 
 
 @mcp.tool()

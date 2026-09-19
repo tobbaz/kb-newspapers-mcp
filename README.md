@@ -1,15 +1,26 @@
 # KB Historical Newspapers MCP Server
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that provides AI assistants (such as Claude Desktop, Antigravity, Cursor, and other MCP-compliant clients) with direct programmatic access to the National Library of Sweden's (Kungliga biblioteket / KB) digitized historical newspapers from the 17th century up to circa 1908–1910.
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that provides AI assistants (such as Claude Desktop, Antigravity, Cursor, and other MCP-compliant clients) with direct programmatic access to the National Library of Sweden's (Kungliga biblioteket / KB) digitized historical newspapers from the 17th century up to 1876.
 
 Built in Python using **FastMCP** and **uv**.
 
 ---
 
+## Dataset Scope & Limitations
+
+> [!IMPORTANT]
+> **API Coverage Ends at 1876:**
+> - Kungliga biblioteket's open data API (`https://data.kb.se/search`) currently indexes digitized historical newspapers from **1645 up to and including 1876** (~2.2 million pages).
+> - Any search with date filters after 1876 (e.g. `from_date="1880"`) will return **0 hits** in this API.
+> - **For 1877–1906:** While Swedish newspapers older than ~115 years are in the public domain and freely browsable on the web portal at [tidningar.kb.se](https://tidningar.kb.se), the post-1876 collection has not yet been ingested into KB's open REST API.
+> - **Modern newspapers (post-1906):** In copyright and restricted to library terminals.
+
+---
+
 ## Key Features
 
-- 🔍 **Full-Text Search (OCR):** Search across more than 2.2 million historical newspaper pages with highlighted text snippets (`<em>...</em>`) indicating matches.
-- 📅 **Filtering & Sorting:** Filter by year or date range (e.g. `1850` to `1880` or `1862-07-01`), restrict searches to specific newspaper titles (e.g. *Aftonbladet*, *Dagens Nyheter*, *Post- och Inrikes Tidningar*, *Göteborgsposten*), and sort by relevance or publication date.
+- 🔍 **Full-Text Search (OCR):** Search across more than 2.2 million historical newspaper pages (1645–1876) with highlighted text snippets (`<em>...</em>`) indicating matches.
+- 📅 **Filtering & Sorting:** Filter by year or date range (e.g. `1850` to `1875` or `1862-07-01`), restrict searches to specific newspaper titles (e.g. *Aftonbladet*, *Dagens Nyheter*, *Post- och Inrikes Tidningar*, *Göteborgsposten*), and sort by relevance or publication date.
 - 📈 **Timeline & Distribution:** Aggregate occurrences of a word, name, or event over time (by year) or across different publications.
 - 🖼️ **High-Resolution Images (IIIF):** Construct direct image URLs for page previews and full-resolution scans using KB's IIIF Image API.
 - 🔗 **Web Link Resolution:** Bidirectional lookup between internal dataset package IDs and public article pages on [tidningar.kb.se](https://tidningar.kb.se) and [digitalt.kb.se](https://digitalt.kb.se).
@@ -161,7 +172,7 @@ Swedish spelling was only standardized in the early 20th century. When searching
 
 ## Copyright & Fair Usage
 
-- **Historical Scope:** Digitized newspapers published before circa 1908–1910 are in the public domain and made available as open data via [data.kb.se](https://data.kb.se). Modern newspapers are protected by copyright and are not included in this open API.
+- **Historical Scope & API Coverage:** Kungliga biblioteket's open data API ([data.kb.se](https://data.kb.se)) provides open access to digitized newspapers from 1645 up to 1876. While public-domain newspapers up to circa 1906–1910 are viewable for free via the web viewer on [tidningar.kb.se](https://tidningar.kb.se), post-1876 issues are not currently indexed in the open REST API. Later modern newspapers are protected by copyright.
 - **Fair Use:** The National Library implements rate throttling to ensure service availability. This server includes an identifying `User-Agent` and automated exponential backoff when encountering rate limits.
 
 ---

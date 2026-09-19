@@ -59,6 +59,29 @@ async def run_tests():
     if res5["matches"]:
         print(f"Sample quote: {res5['matches'][0]['quote']}")
 
+    print("\n=== Test 6: 1876 Boundary Warnings & Notes ===")
+    # Query with from_date > 1876
+    res6_from = await search_newspapers(query="ångbåt", from_date="1880", limit=1)
+    assert "warning" in res6_from, "Expected warning for from_date > 1876"
+    assert "1876" in res6_from["warning"], "Expected warning to mention 1876"
+    assert "tidningar.kb.se" in res6_from["warning"]
+    print(f"Warning (from_date > 1876): {res6_from['warning']}")
+
+    # Query with to_date > 1876
+    res6_to = await search_newspapers(query="ångbåt", from_date="1870", to_date="1885", limit=1)
+    assert "warning" in res6_to, "Expected warning for to_date > 1876"
+    print(f"Warning (to_date > 1876): {res6_to['warning']}")
+
+    # Sane query with 0 hits should include guidance note
+    res6_zero = await search_newspapers(query="xyznonexistentterm12345", limit=1)
+    assert res6_zero["total_hits"] == 0
+    assert "note" in res6_zero, "Expected note for 0 hits"
+    print(f"Note (0 hits): {res6_zero['note']}")
+
+    # Timeline with datePublished should include 1876 coverage note
+    assert "note" in res2, "Expected note in get_newspaper_timeline for datePublished"
+    print(f"Timeline note: {res2['note']}")
+
     print("\nALL INTEGRATION TESTS PASSED SUCCESSFULLY!")
 
 
